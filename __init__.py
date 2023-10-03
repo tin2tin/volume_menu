@@ -1,14 +1,27 @@
 import bpy
 
+bl_info = {
+    "name": "Volume Menu",
+    "author": "tintwotin",
+    "version": (1, 0),
+    "blender": (3, 4, 0),
+    "location": "Sequencer > Strip > Sound",
+    "description": "Adjust volume",
+    "warning": "",
+    "doc_url": "",
+    "category": "Sequencer",
+}
+
+
 class SEQUENCER_OT_adjust_volume(bpy.types.Operator):
     bl_idname = "sequencer.adjust_volume"
     bl_label = "Adjust Audio Volume"
 
     direction: bpy.props.EnumProperty(
-        items=[('UP', "Up", "Increase volume"), ('DOWN', "Down", "Decrease volume")],
+        items=[("UP", "Up", "Increase volume"), ("DOWN", "Down", "Decrease volume")],
         name="Direction",
         description="Increase or decrease volume",
-        default="UP"
+        default="UP",
     )
 
     volume_change: bpy.props.FloatProperty(
@@ -17,15 +30,15 @@ class SEQUENCER_OT_adjust_volume(bpy.types.Operator):
         default=0.2,
         min=0.0,
         soft_min=0.0,
-        step=0.2
+        step=0.2,
     )
 
     @classmethod
     def poll(cls, context):
         return (
-            context.area.type == 'SEQUENCE_EDITOR' and
-            context.selected_sequences is not None and
-            all(strip.type == 'SOUND' for strip in context.selected_sequences)
+            context.area.type == "SEQUENCE_EDITOR"
+            and context.selected_sequences is not None
+            and all(strip.type == "SOUND" for strip in context.selected_sequences)
         )
 
     def execute(self, context):
@@ -33,27 +46,25 @@ class SEQUENCER_OT_adjust_volume(bpy.types.Operator):
             volume_change = self.volume_change
         else:
             volume_change = -self.volume_change
-
         for strip in context.selected_sequences:
-            if strip.type == 'SOUND':
+            if strip.type == "SOUND":
                 strip.volume += volume_change
-
-        return {'FINISHED'}
+        return {"FINISHED"}
 
 
 class SEQUENCER_OT_volume_popup(bpy.types.Operator):
     bl_idname = "sequencer.volume_popup"
     bl_label = "Volume"
-    bl_options = {'REGISTER', 'UNDO'}
+    bl_options = {"REGISTER", "UNDO"}
 
     @classmethod
     def poll(cls, context):
         if (
-            context.scene and
-            context.scene.sequence_editor and
-            context.scene.sequence_editor.active_strip
+            context.scene
+            and context.scene.sequence_editor
+            and context.scene.sequence_editor.active_strip
         ):
-            return context.scene.sequence_editor.active_strip.type == 'SOUND'
+            return context.scene.sequence_editor.active_strip.type == "SOUND"
         else:
             return False
 
@@ -61,7 +72,7 @@ class SEQUENCER_OT_volume_popup(bpy.types.Operator):
         return context.window_manager.invoke_popup(self, width=170)
 
     def execute(self, context):
-        return {'FINISHED'}
+        return {"FINISHED"}
 
     def draw(self, context):
         strip = context.scene.sequence_editor.active_strip
@@ -72,7 +83,6 @@ class SEQUENCER_OT_volume_popup(bpy.types.Operator):
 
 def menu_func(self, context):
     layout = self.layout
-    layout.operator(SEQUENCER_OT_adjust_volume.bl_idname, text="Adjust Audio Volume")
     layout.menu("SOUND_MT_adjust_volume_submenu")
 
 
@@ -96,34 +106,59 @@ def register():
     bpy.types.SEQUENCER_MT_strip.append(menu_func)
     bpy.types.SEQUENCER_MT_context_menu.append(menu_func)
     bpy.utils.register_class(SEQUENCER_OT_volume_popup)
-    
+
     kc = bpy.context.window_manager.keyconfigs.addon
     km = kc.keymaps.new(name="Sequencer", space_type="SEQUENCE_EDITOR")
-    
-    kmi = km.keymap_items.new(SEQUENCER_OT_adjust_volume.bl_idname, type='EQUAL', value='PRESS', ctrl=True, repeat = True)
-    kmi.properties.direction = "UP"    
-    
-    kmi = km.keymap_items.new(SEQUENCER_OT_adjust_volume.bl_idname, type='PLUS', value='PRESS', ctrl=True, repeat = True)
+
+    kmi = km.keymap_items.new(
+        SEQUENCER_OT_adjust_volume.bl_idname,
+        type="EQUAL",
+        value="PRESS",
+        ctrl=True,
+        repeat=True,
+    )
     kmi.properties.direction = "UP"
-  
-    kmi = km.keymap_items.new(SEQUENCER_OT_adjust_volume.bl_idname, type='MINUS', value='PRESS', ctrl=True, repeat = True)
+
+    kmi = km.keymap_items.new(
+        SEQUENCER_OT_adjust_volume.bl_idname,
+        type="PLUS",
+        value="PRESS",
+        ctrl=True,
+        repeat=True,
+    )
+    kmi.properties.direction = "UP"
+
+    kmi = km.keymap_items.new(
+        SEQUENCER_OT_adjust_volume.bl_idname,
+        type="MINUS",
+        value="PRESS",
+        ctrl=True,
+        repeat=True,
+    )
     kmi.properties.direction = "DOWN"
 
-    kmi = km.keymap_items.new(SEQUENCER_OT_volume_popup.bl_idname, type='V', value='PRESS')
+    kmi = km.keymap_items.new(
+        SEQUENCER_OT_volume_popup.bl_idname, type="V", value="PRESS"
+    )
+
 
 def unregister():
     bpy.utils.unregister_class(SEQUENCER_MT_sound_menu)
     bpy.utils.unregister_class(SEQUENCER_OT_adjust_volume)
     bpy.utils.unregister_class(SEQUENCER_OT_volume_popup)
-    
+
     bpy.types.SEQUENCER_MT_strip.remove(menu_func)
-    
+
     kc = bpy.context.window_manager.keyconfigs.addon
     km = kc.keymaps.get("Sequencer")
     if km:
         for kmi in km.keymap_items:
-            if kmi.idname == SEQUENCER_OT_adjust_volume.bl_idname or kmi.idname == SEQUENCER_OT_volume_popup.bl_idname:
+            if (
+                kmi.idname == SEQUENCER_OT_adjust_volume.bl_idname
+                or kmi.idname == SEQUENCER_OT_volume_popup.bl_idname
+            ):
                 km.keymap_items.remove(kmi)
+
 
 if __name__ == "__main__":
     register()
